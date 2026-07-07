@@ -18,11 +18,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      
-      - name: Install dependencies with npm
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          run_install: false
+
+      - name: Disable patches and remove lockfiles
+        # 1. 不整合を防ぐために既存のロックファイルを削除
+        # 2. .npmrc に「パッチを一切適用しない」という pnpm 固有の強力な設定を強制注入
         run: |
-          rm -f pnpm-lock.yaml
-          npm install --legacy-peer-deps
+          find . -name "pnpm-lock.yaml" -not -path "*/node_modules/*" -exec rm -f {} \;
+          echo "patched-dependencies=" >> .npmrc
+          echo "side-effects-cache=false" >> .npmrc
+
+      - name: Install dependencies
+        # ワークスペース構成（minecraft-data等）を維持したまま、パッチを無視してクリーンインストールします
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Build
         run: pnpm run build
