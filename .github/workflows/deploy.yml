@@ -25,13 +25,13 @@ jobs:
           version: 8
 
       - name: Remove patches and lockfiles
-        # package.json からパッチを消し、不整合の原因になる pnpm-lock.yaml もすべて削除します
+        # ここで lockfile も一緒に消すのが一番のポイントです！
         run: |
           find . -name "pnpm-lock.yaml" -not -path "*/node_modules/*" -exec rm -f {} \;
           find . -name "package.json" -not -path "*/node_modules/*" -exec node -e "const fs = require('fs'); const path = process.argv[1]; const pkg = JSON.parse(fs.readFileSync(path, 'utf8')); if (pkg.patchedDependencies) { delete pkg.patchedDependencies; fs.writeFileSync(path, JSON.stringify(pkg, null, 2)); console.log('Removed patches from ' + path); }" {} \;
 
       - name: Install dependencies
-        # ロックファイルがないため、完全に新規（パッチなし状態）でクリーンインストールされます
+        # 重複していたステップを整理し、まっさらな状態でインストールします
         run: pnpm install --no-frozen-lockfile
 
       - name: Build
