@@ -18,22 +18,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-          run_install: false
-
-      - name: Remove patches and lockfiles
+      
+      - name: Install dependencies with npm
         run: |
-          find . -name "pnpm-lock.yaml" -not -path "*/node_modules/*" -exec rm -f {} \;
-          find . -name "package.json" -not -path "*/node_modules/*" -exec node -e "const fs = require('fs'); const path = process.argv[1]; const pkg = JSON.parse(fs.readFileSync(path, 'utf8')); if (pkg.patchedDependencies) { delete pkg.patchedDependencies; fs.writeFileSync(path, JSON.stringify(pkg, null, 2)); console.log('Removed patches from ' + path); }" {} \;
-
-      - name: Install dependencies
-        # --ignore-scripts をつけることで、パッチの適用処理（ERR_PNPM_PATCH_NOT_APPLIEDの発生源）を強制的にスキップします
-        # さらに、既存のパッチ済みキャッシュを使わせない設定を追加しています
-        run: pnpm install --no-frozen-lockfile --ignore-scripts --config.side-effects-cache=false
+          rm -f pnpm-lock.yaml
+          npm install --legacy-peer-deps
 
       - name: Build
         run: pnpm run build
