@@ -26,7 +26,7 @@ jobs:
 
       - name: Install dependencies
         # pnpmを使うことでプロジェクト内部の依存関係を正しく解決します
-        run: pnpm install --no-frozen-lockfile --ignore-pnpmfile
+        run: pnpm install --no-frozen-lockfile --config.patchedDependencies=
 
       - name: Build
         # プロジェクト全体のビルドを実行
