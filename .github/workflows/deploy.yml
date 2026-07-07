@@ -23,7 +23,6 @@ jobs:
         uses: pnpm/action-setup@v3
         with:
           version: 8
-          # キャッシュによる不整合を防ぐため、アクション側のキャッシュ機能を明示的にオフにします
           run_install: false
 
       - name: Remove patches and lockfiles
@@ -32,11 +31,9 @@ jobs:
           find . -name "package.json" -not -path "*/node_modules/*" -exec node -e "const fs = require('fs'); const path = process.argv[1]; const pkg = JSON.parse(fs.readFileSync(path, 'utf8')); if (pkg.patchedDependencies) { delete pkg.patchedDependencies; fs.writeFileSync(path, JSON.stringify(pkg, null, 2)); console.log('Removed patches from ' + path); }" {} \;
 
       - name: Install dependencies
-        # パッチを完全に無視させ、キャッシュも使わずに強制インストールします
-        run: pnpm install --no-frozen-lockfile --ignore-pnpmfile
-        env:
-          # pnpmにパッチの検証を強制スルーさせる環境変数です
-          pnpm_config_ignore_pnpmfile: "true"
+        # --ignore-scripts をつけることで、パッチの適用処理（ERR_PNPM_PATCH_NOT_APPLIEDの発生源）を強制的にスキップします
+        # さらに、既存のパッチ済みキャッシュを使わせない設定を追加しています
+        run: pnpm install --no-frozen-lockfile --ignore-scripts --config.side-effects-cache=false
 
       - name: Build
         run: pnpm run build
