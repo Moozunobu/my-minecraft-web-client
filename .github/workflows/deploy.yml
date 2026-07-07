@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ] # あなたのメインブランチ名に合わせてください
+    branches: [ main ]
 
 permissions:
   contents: write
@@ -20,13 +20,17 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
+        # バージョン不整合を無視し、存在しないパッケージのエラーを回避する設定
+        run: npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
+        
       - name: Build
+        # ビルドを強制実行
         run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096" # メモリ不足対策
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist # rsbuildの出力フォルダ
+          folder: dist
           branch: gh-pages
