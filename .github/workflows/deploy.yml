@@ -19,15 +19,20 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
       - name: Install dependencies
-        # バージョン不整合を無視し、存在しないパッケージのエラーを回避する設定
-        run: npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
-        
+        # pnpmを使うことでプロジェクト内部の依存関係を正しく解決します
+        run: pnpm install --no-frozen-lockfile
+
       - name: Build
-        # ビルドを強制実行
-        run: npm run build
+        # プロジェクト全体のビルドを実行
+        run: pnpm run build
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096" # メモリ不足対策
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
