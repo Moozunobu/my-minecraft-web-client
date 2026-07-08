@@ -25,17 +25,18 @@ jobs:
           version: 8
           run_install: false
 
-      - name: Disable patches and remove lockfiles
-        # 1. 不整合を防ぐために既存のロックファイルを削除
-        # 2. .npmrc に「パッチを一切適用しない」という pnpm 固有の強力な設定を強制注入
+      - name: Hard delete patches config and lockfiles
         run: |
           find . -name "pnpm-lock.yaml" -not -path "*/node_modules/*" -exec rm -f {} \;
-          echo "patched-dependencies=" >> .npmrc
-          echo "side-effects-cache=false" >> .npmrc
+          find . -name "package.json" -not -path "*/node_modules/*" -exec sed -i '/"patchedDependencies":/,/}/d' {} \;
+          find . -name "package.json" -not -path "*/node_modules/*" -exec sed -i '/"patchedDependencies":/d' {} \;
 
       - name: Install dependencies
-        # ワークスペース構成（minecraft-data等）を維持したまま、パッチを無視してクリーンインストールします
-        run: pnpm install --no-frozen-lockfile --ignore-scripts
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install tsx
+        # ビルドスクリプトの実行に不足している tsx コマンドをグローバルに補充します
+        run: pnpm add -g tsx
 
       - name: Build
         run: pnpm run build
