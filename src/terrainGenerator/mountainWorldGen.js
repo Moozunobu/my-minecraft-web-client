@@ -11,12 +11,15 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
     ? seed.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0)
     : (seed | 0)
 
+  // 地形の起伏、温度、湿度
   const continentNoise = new PerlinNoise2D(numericSeed)
   const erosionNoise = new PerlinNoise2D(numericSeed + 1)
   const peaksNoise = new PerlinNoise2D(numericSeed + 2)
   const tempNoise = new PerlinNoise2D(numericSeed + 3)
   const humidityNoise = new PerlinNoise2D(numericSeed + 4)
   const vegetationNoise = new PerlinNoise2D(numericSeed + 5)
+  // 超低周波ノイズによる広大な大陸・海の制御
+  const macroContinentNoise = new PerlinNoise2D(numericSeed + 6)
 
   const SEA_LEVEL = 64
 
@@ -27,21 +30,31 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
   }
 
   function getSurfaceHeight(wx, wz) {
-    const continent = continentNoise.fbm(wx, wz, { octaves: 4, frequency: 0.0015 })
+    // 広大な大陸と深い海を分ける超低周波ノイズ
+    const macroContinent = macroContinentNoise.fbm(wx, wz, { octaves: 2, frequency: 0.0005 })
+    const continent = continentNoise.fbm(wx, wz, { octaves: 4, frequency: 0.002 })
     const erosion = erosionNoise.fbm(wx, wz, { octaves: 4, frequency: 0.002 })
     const peaks = peaksNoise.fbm(wx, wz, { octaves: 4, frequency: 0.005 })
 
-    // 海の範囲を広げる: continentが低いと深く沈む
-    // continent が 0.5 付近で陸地が始まるように
-    let baseHeight = SEA_LEVEL - 30 + (continent * 60)
+    // 大局的なノイズと局所的なノイズをブレンドして海岸線を複雑にする
+    const combinedContinent = macroContinent * 0.8 + continent * 0.2
 
+    // baseHeight: combinedContinent=0.42付近が海面(64)になる設定
+    // 0.2 -> 深海 (約26)
+    // 0.5 -> 平原 (約78)
+    // 0.8 -> 高原 (約129)
+    let baseHeight = SEA_LEVEL - 70 + (combinedContinent * 170)
+
+    // 浸食による平坦化・谷
     let erosionFactor = Math.max(0, erosion - 0.4) * 2.0
     baseHeight -= erosionFactor * 20
 
-    // 山脈の隆起: 山のスケールを 150 にして3乗で絶壁を作る
-    if (erosion < 0.6 && continent > 0.4) {
+    // 山脈の隆起: 大陸内部(combinedContinent > 0.5)で、侵食が少ない(erosion < 0.6)場所にそびえ立つ
+    if (erosion < 0.6 && combinedContinent > 0.5) {
        const mountainFactor = Math.pow(peaks, 3) * (1.0 - (erosion / 0.6))
-       baseHeight += mountainFactor * 150
+       // 海岸付近から大陸奥地にかけて徐々に山を高くする
+       const continentScale = Math.min(1.0, (combinedContinent - 0.5) * 5.0) 
+       baseHeight += mountainFactor * 180 * continentScale
     }
 
     const detail = peaksNoise.noise(wx * 0.05, wz * 0.05) * 3
@@ -65,6 +78,18 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
     if (hum > 0.55 && t > 0.4) return 'forest'
 
     return 'plains'
+  }
+
+  // 木の配置間隔をチェック
+  function isValidTreePosition(lx, lz, decorations) {
+    for (const dec of decorations) {
+      if (dec.type === 'tree') {
+        const dx = Math.abs(lx - dec.x)
+        const dz = Math.abs(lz - dec.z)
+        if (dx < 3 && dz < 3) return false // 3ブロック以内には生やさない
+      }
+    }
+    return true
   }
 
   function generateTree(chunk, lx, ly, lz, b, type) {
@@ -154,9 +179,17 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
         }
 
         const vSurface = new Vec3(lx, h, lz)
-        if (h < SEA_LEVEL && bio === 'ocean') {
-          setBlock(chunk, vSurface, b.gravel || b.sand, theFlattening)
-          for (let ly = h + 1; ly <= SEA_LEVEL; ly++) setBlock(chunk, new Vec3(lx, ly, lz), b.water, theFlattening)
+        
+        // --- 修正点: 水の生成を完璧にする ---
+        // 高さがSEA_LEVEL未満の場所は、例外なくすべて水で満たす
+        if (h < SEA_LEVEL) {
+          // 底面ブロック
+          const bottomBlock = (bio === 'ocean' || bio === 'beach') ? (b.sand || b.dirt) : b.dirt
+          setBlock(chunk, vSurface, bottomBlock, theFlattening)
+          // h+1 から SEA_LEVEL まで静止水で満たす
+          for (let ly = h + 1; ly <= SEA_LEVEL; ly++) {
+             setBlock(chunk, new Vec3(lx, ly, lz), b.water, theFlattening)
+          }
         } else if (bio === 'beach') {
           setBlock(chunk, vSurface, b.sand, theFlattening)
         } else if (bio === 'desert') {
@@ -166,25 +199,31 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
         } else if (bio === 'mountains') {
           setBlock(chunk, vSurface, b.stone, theFlattening)
         } else {
-          setBlock(chunk, vSurface, b.grass_block || b.grass, theFlattening) // b.grass フォールバック
+          setBlock(chunk, vSurface, b.grass_block || b.grass, theFlattening)
           
           const vegVal = vegetationNoise.noise(wx * 0.1, wz * 0.1)
           const r = hashRandom(wx, wz)
           
           if (bio === 'forest') {
-            if (vegVal > 0.0 && r < 0.1) decorations.push({ type: 'tree', treeType: 'oak', x: lx, y: h + 1, z: lz })
+            if (vegVal > 0.0 && r < 0.1) {
+              if (isValidTreePosition(lx, lz, decorations)) decorations.push({ type: 'tree', treeType: 'oak', x: lx, y: h + 1, z: lz })
+            }
             else if (r < 0.3) decorations.push({ type: 'tall_grass', x: lx, y: h + 1, z: lz })
             else if (r < 0.32) decorations.push({ type: 'poppy', x: lx, y: h + 1, z: lz })
           } else if (bio === 'plains') {
-            if (vegVal > 0.4 && r < 0.02) decorations.push({ type: 'tree', treeType: 'oak', x: lx, y: h + 1, z: lz })
+            if (vegVal > 0.4 && r < 0.02) {
+               if (isValidTreePosition(lx, lz, decorations)) decorations.push({ type: 'tree', treeType: 'oak', x: lx, y: h + 1, z: lz })
+            }
             else if (r < 0.15) decorations.push({ type: 'tall_grass', x: lx, y: h + 1, z: lz })
             else if (r < 0.17) decorations.push({ type: 'dandelion', x: lx, y: h + 1, z: lz })
           }
         }
 
-        if (bio === 'mountains' && h < 110) {
+        if (bio === 'mountains' && h < 110 && h >= SEA_LEVEL) {
            const r = hashRandom(wx, wz)
-           if (r < 0.05) decorations.push({ type: 'tree', treeType: 'spruce', x: lx, y: h + 1, z: lz })
+           if (r < 0.05 && isValidTreePosition(lx, lz, decorations)) {
+             decorations.push({ type: 'tree', treeType: 'spruce', x: lx, y: h + 1, z: lz })
+           }
         }
       }
     }
@@ -209,4 +248,4 @@ function setBlock(chunk, vec, block, theFlattening) {
   if (!block) return
   if (theFlattening) chunk.setBlockStateId(vec, block.defaultState ?? block.minStateId ?? 0)
   else chunk.setBlockType(vec, block.id)
-}
+}
