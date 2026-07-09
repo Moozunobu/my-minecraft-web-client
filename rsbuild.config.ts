@@ -135,7 +135,7 @@ const appConfig = defineConfig({
         ]
     },
     output: {
-        assetPrefix: './',
+        assetPrefix: process.env.PUBLIC_URL || './',
         externals: [
             'sharp'
         ],
@@ -204,9 +204,9 @@ const appConfig = defineConfig({
     },
     server: {
         // strictPort: true,
-        // publicDir: {
-        //     name: 'assets',
-        // },
+        publicDir: {
+            name: 'public',
+        },
         proxy: {
             '/api': 'http://localhost:8080',
         },
@@ -219,6 +219,15 @@ const appConfig = defineConfig({
                 const prep = async () => {
                     console.time('total-prep')
                     fs.mkdirSync('./generated', { recursive: true })
+                    fs.mkdirSync('./dist', { recursive: true })
+                    fs.mkdirSync('./public', { recursive: true })
+                    if (fs.existsSync('./assets/coi-serviceworker.min.js')) {
+                        fs.copyFileSync('./assets/coi-serviceworker.min.js', './dist/coi-serviceworker.min.js')
+                        fs.copyFileSync('./assets/coi-serviceworker.min.js', './public/coi-serviceworker.min.js')
+                    } else if (fs.existsSync('./node_modules/coi-serviceworker/coi-serviceworker.min.js')) {
+                        fs.copyFileSync('./node_modules/coi-serviceworker/coi-serviceworker.min.js', './dist/coi-serviceworker.min.js')
+                        fs.copyFileSync('./node_modules/coi-serviceworker/coi-serviceworker.min.js', './public/coi-serviceworker.min.js')
+                    }
                     if (!fs.existsSync('./generated/minecraft-data-optimized.json') || !fs.existsSync('./generated/mc-assets-compressed.js') || require('./generated/minecraft-data-optimized.json').versionKey !== require('minecraft-data/package.json').version) {
                         childProcess.execSync('tsx ./scripts/makeOptimizedMcData.mjs', { stdio: 'inherit' })
                     }
@@ -250,20 +259,42 @@ const appConfig = defineConfig({
                     // childProcess.execSync('./scripts/prepareSounds.mjs', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genMcDataTypes.ts', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genPixelartTypes.ts', { stdio: 'inherit' })
-                    // copy mesher worker
-                    if (fs.existsSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm')) {
-                        fs.copyFileSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm', './dist/wasm_mesher_bg.wasm')
-                    } else {
-                        console.warn('wasm_mesher_bg.wasm not found')
+                    const rendererPath = path.resolve('./node_modules/minecraft-renderer')
+                    if (fs.existsSync(rendererPath)) {
+                        const findWasmFiles = (dir: string) => {
+                            let results: string[] = []
+                            const list = fs.readdirSync(dir)
+                            list.forEach((file) => {
+                                const filePath = path.resolve(dir, file)
+                                const stat = fs.statSync(filePath)
+                                if (stat && stat.isDirectory()) {
+                                    results = results.concat(findWasmFiles(filePath))
+                                } else if (filePath.endsWith('.wasm')) {
+                                    results.push(filePath)
+                                }
+                            })
+                            return results
+                        }
+                        const wasmFiles = findWasmFiles(rendererPath)
+                        wasmFiles.forEach((wasmFilePath) => {
+                            const fileName = path.basename(wasmFilePath)
+                            fs.copyFileSync(wasmFilePath, path.resolve('./dist', fileName))
+                            fs.copyFileSync(wasmFilePath, path.resolve('./public', fileName))
+                        })
                     }
+
                     if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesherWasm.js')) {
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', './dist/mesherWasm.js')
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', './public/mesherWasm.js')
                     }
                     if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesher.js')) {
-                        // copy mesher
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js', './dist/mesher.js')
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js.map', './dist/mesher.js.map')
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/threeWorker.js', './dist/threeWorker.js')
+                        
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js', './public/mesher.js')
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js.map', './public/mesher.js.map')
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/threeWorker.js', './public/threeWorker.js')
                     } else {
                         throw new Error('mesher.js not found')
                     }
