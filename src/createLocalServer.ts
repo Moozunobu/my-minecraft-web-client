@@ -3,7 +3,12 @@ import { LocalServer } from './customServer'
 const { createMCServer } = require('flying-squid/dist')
 
 export const startLocalServer = (serverOptions) => {
-  const passOptions = { ...serverOptions, Server: LocalServer }
+  const mcData = require('minecraft-data')(serverOptions.version)
+  const passOptions = { 
+    ...serverOptions, 
+    Server: LocalServer,
+    recipes: mcData.recipes // 標準レシピデータを読み込ませてクラフト機能を有効化
+  }
   const server: NonNullable<typeof localServer> = createMCServer(passOptions)
   server.formatMessage = (message) => `[server] ${message}`
   server.options = passOptions

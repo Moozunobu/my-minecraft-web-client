@@ -123,10 +123,11 @@ export const onGameLoad = () => {
     try {
       const resultingItem = getResultingRecipe(craftingSlots, 2)
       skipUpdate = true
-      void bot.creative.setInventorySlot(craftingResultSlot, resultingItem ?? null).then(() => {
-        skipUpdate = false
-      })
+      bot.creative.setInventorySlot(craftingResultSlot, resultingItem ?? null)
+        .catch(err => console.error('Crafting set slot error:', err))
+        .finally(() => { skipUpdate = false })
     } catch (err) {
+      skipUpdate = false
       console.error(err)
     }
   }) as any)
@@ -184,13 +185,43 @@ const getResultingRecipe = (slots: Array<Item | null>, gridRows: number) => {
   type Result = RecipeItem | undefined
   let shapelessResult: Result
   let shapeResult: Result
+
+  const extractId = (item: any) => typeof item === 'number' ? item : (item && item.id !== undefined ? item.id : item)
+  const matchShape = (slotsShape: (number | null)[][], recipeShape: any[][]) => {
+    if (!recipeShape || slotsShape.length !== recipeShape.length) return false
+    for (let y = 0; y < slotsShape.length; y++) {
+      if (slotsShape[y]!.length !== recipeShape[y]!.length) return false
+      for (let x = 0; x < slotsShape[y]!.length; x++) {
+        const s = slotsShape[y]![x]
+        const req = recipeShape[y]![x]
+        if (s === null && req === null) continue
+        if (s === null || req === null) return false
+        const reqArr = Array.isArray(req) ? req : [req]
+        if (!reqArr.some(idObj => extractId(idObj) === s)) return false
+      }
+    }
+    return true
+  }
+
+  const matchIngredients = (slots: number[], recipeIngs: any[]) => {
+    if (!recipeIngs || slots.length !== recipeIngs.length) return false
+    const availableSlots = [...slots]
+    for (const req of recipeIngs) {
+       const reqArr = Array.isArray(req) ? req : [req]
+       const index = availableSlots.findIndex(s => reqArr.some(idObj => extractId(idObj) === s))
+       if (index === -1) return false
+       availableSlots.splice(index, 1)
+    }
+    return true
+  }
+
   outer: for (const [id, recipeVariants] of Object.entries(loadedData.recipes ?? {})) {
     for (const recipeVariant of recipeVariants) {
-      if ('inShape' in recipeVariant && equals(currentShape, recipeVariant.inShape as number[][])) {
+      if ('inShape' in recipeVariant && matchShape(currentShape, recipeVariant.inShape as any[][])) {
         shapeResult = recipeVariant.result!
         break outer
       }
-      if ('ingredients' in recipeVariant && equals(slotsIngredients, recipeVariant.ingredients?.sort() as number[])) {
+      if ('ingredients' in recipeVariant && matchIngredients(slotsIngredients as number[], recipeVariant.ingredients as any[])) {
         shapelessResult = recipeVariant.result
         break outer
       }
