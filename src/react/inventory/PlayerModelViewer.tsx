@@ -9,25 +9,12 @@ import { PlayerModelCanvas } from '../OverlayModelViewer'
  * 2. Falls back to loadSkinFromUsername(bot.username) when no local skin is set
  */
 export function PlayerModelViewer ({ width, height }: { width: number; height: number }) {
-  const [skinUrl, setSkinUrl] = useState<string>(() => appViewer?.playerState?.reactive?.playerSkin ?? '')
+  // スキンURLを空文字に固定し、デフォルトのスティーブを強制する
+  const [skinUrl, setSkinUrl] = useState<string>('')
 
   useEffect(() => {
-    const reactive = appViewer?.playerState?.reactive
-    if (!reactive) return
-
-    // Keep skinUrl in sync with playerState changes (e.g. resource pack swap, skin update)
-    const unsubscribe = subscribeKey(reactive, 'playerSkin', (skin) => {
-      if (skin) setSkinUrl(skin)
-    })
-
-    // If there is no locally cached skin, fetch it from Mojang by username
-    if (!reactive.playerSkin) {
-      void loadSkinFromUsername(bot.username, 'skin').then(url => {
-        if (url) setSkinUrl(url)
-      })
-    }
-
-    return unsubscribe
+    // カスタムスキンの読み込みを無効化
+    return () => {}
   }, [])
 
   return <PlayerModelCanvas width={width} height={height} skinUrl={skinUrl} followCursor />

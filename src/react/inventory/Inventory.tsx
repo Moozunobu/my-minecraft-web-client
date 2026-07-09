@@ -85,8 +85,9 @@ export const Inventory = () => {
     }
   }, [])
 
-  const jeiEnabled = options.inventoryJei === true
-    || (Array.isArray(options.inventoryJei) && options.inventoryJei.includes(bot.game?.gameMode as any))
+  // サバイバルモードでは「Show All Items (JEI)」を非表示にする
+  const jeiEnabled = gameMode === 'creative' && (options.inventoryJei === true
+    || (Array.isArray(options.inventoryJei) && options.inventoryJei.includes(bot.game?.gameMode as any)))
   const inventoryNotesEnabled = options.inventoryNotes
   const inventoryPlaceholdersEnabled = options.inventoryPlaceholders
   const inventoryPlayerModelEnabled = options.inventoryPlayerModel
