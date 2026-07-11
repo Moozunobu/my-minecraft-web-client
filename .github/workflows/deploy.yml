@@ -41,7 +41,7 @@ jobs:
       - name: Build
         run: pnpm run build
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          PUBLIC_URL: /minecraft-web-client/
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
