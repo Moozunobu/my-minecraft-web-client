@@ -39,8 +39,11 @@ jobs:
         run: pnpm add -g tsx
 
       - name: Build
-        run: pnpm run build
+        run: |
+          pnpm run build
+          touch dist/.nojekyll
         env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
           PUBLIC_URL: /minecraft-web-client/
 
       - name: Deploy
