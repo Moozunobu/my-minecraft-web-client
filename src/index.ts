@@ -300,6 +300,11 @@ export async function connect (connectOptions: ConnectOptions) {
       hideModal(modal)
     }
 
+    const initialLoader = document.querySelector('.initial-loader') as HTMLElement | null
+    if (initialLoader) {
+      initialLoader.style.opacity = '0'
+      initialLoader.style.pointerEvents = 'none'
+    }
     setLoadingScreenStatus(formatLoadingScreenError(source, err), true)
     appStatusState.showReconnect = true
     onPossibleErrorDisconnect()

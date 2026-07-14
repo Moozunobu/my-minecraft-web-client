@@ -135,7 +135,7 @@ const appConfig = defineConfig({
         ]
     },
     output: {
-        assetPrefix: process.env.PUBLIC_URL || './',
+        assetPrefix: './',
         externals: [
             'sharp'
         ],
