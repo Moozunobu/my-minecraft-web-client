@@ -135,7 +135,7 @@ const appConfig = defineConfig({
         ]
     },
     output: {
-        assetPrefix: process.env.PUBLIC_URL || '/my-minecraft-web-client/',
+        assetPrefix: process.env.PUBLIC_URL || './',
         externals: [
             'sharp'
         ],
