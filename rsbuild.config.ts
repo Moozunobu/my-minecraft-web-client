@@ -94,6 +94,9 @@ const appConfig = defineConfig({
     html: {
         template: './index.html',
         inject: 'body',
+        templateParameters: {
+            PUBLIC_URL: process.env.PUBLIC_URL || '/',
+        },
         tags: [
             ...SINGLE_FILE_BUILD ? [] : [
                 {
