@@ -44,7 +44,7 @@ jobs:
           touch dist/.nojekyll
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          PUBLIC_URL: /minecraft-web-client/
+          PUBLIC_URL: /${{ github.event.repository.name }}/
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
