@@ -25,17 +25,28 @@ jobs:
           version: 8
           run_install: false
 
-      - name: Hard delete patches config and lockfiles
+      - name: Remove pnpm lockfile to avoid frozen install issues
         run: |
           find . -name "pnpm-lock.yaml" -not -path "*/node_modules/*" -exec rm -f {} \;
-          find . -name "package.json" -not -path "*/node_modules/*" -exec sed -i '/"patchedDependencies":/,/}/d' {} \;
-          find . -name "package.json" -not -path "*/node_modules/*" -exec sed -i '/"patchedDependencies":/d' {} \;
+
+      - name: Remove patchedDependencies from package.json (pnpm v8 compat)
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            if (pkg.pnpm) {
+              delete pkg.pnpm.patchedDependencies;
+              delete pkg.pnpm.updateConfig;
+              delete pkg.pnpm.allowUnusedPatches;
+            }
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+            console.log('package.json cleaned');
+          "
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Install tsx
-        # ビルドスクリプトの実行に不足している tsx コマンドをグローバルに補充します
         run: pnpm add -g tsx
 
       - name: Build
@@ -45,6 +56,16 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           PUBLIC_URL: /${{ github.event.repository.name }}/
+
+      - name: Verify critical files exist
+        run: |
+          echo "Checking critical build artifacts..."
+          ls -la dist/coi-serviceworker.min.js || echo "WARNING: coi-serviceworker.min.js missing!"
+          ls -la dist/mesherWasm.js || echo "WARNING: mesherWasm.js missing!"
+          ls -la dist/mesher.js || echo "WARNING: mesher.js missing!"
+          ls -la dist/wasm_mesher_bg.wasm || echo "WARNING: wasm_mesher_bg.wasm missing!"
+          echo "Checking mesherWasm.js patch..."
+          grep -c 'self.location' dist/mesherWasm.js && echo "PATCH APPLIED: n1e.url fix present" || echo "WARNING: PATCH NOT APPLIED"
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4

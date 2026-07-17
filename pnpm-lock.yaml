@@ -315,6 +315,9 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
+      coi-serviceworker:
+        specifier: ^0.1.7
+        version: 0.1.7
       constants-browserify:
         specifier: ^1.0.0
         version: 1.0.0
@@ -3913,6 +3916,9 @@ packages:
   clsx@1.1.1:
     resolution: {integrity: sha512-6/bPho624p3S2pMyvP5kKBPXnI3ufHLObBFCfgx+LkeR5lg2XYy2hqZqUf45ypD8COn2bhgGJSUE+l5dhNBieA==}
     engines: {node: '>=6'}
+
+  coi-serviceworker@0.1.7:
+    resolution: {integrity: sha512-bjSUqEngCPOkErY2vbyWsaIGCNRODYzlNycaREVw5s12/C8SM+RnRUUeX6pZbTtov6C52ZLY/+tvHK+BDxuUuA==}
 
   color-convert@1.9.3:
     resolution: {integrity: sha512-QfAUtd+vFdAtFQcC8CCyYt1fYWxSqAiK2cSD6zDB8N3cpsEBAvRxp9zOGg6G/SHHJYAT88/az/IuDGALsNVbGg==}
@@ -12949,6 +12955,8 @@ snapshots:
   clone@1.0.4: {}
 
   clsx@1.1.1: {}
+
+  coi-serviceworker@0.1.7: {}
 
   color-convert@1.9.3:
     dependencies:
