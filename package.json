@@ -236,5 +236,5 @@
     "ignorePatchFailures": false,
     "allowUnusedPatches": false
   },
-  "packageManager": "pnpm@10.32.1"
+  "packageManager": "pnpm@9.15.4"
 }

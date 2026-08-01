@@ -22,26 +22,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8
+          version: 9
           run_install: false
-
-      - name: Remove pnpm lockfile to avoid frozen install issues
-        run: |
-          find . -name "pnpm-lock.yaml" -not -path "*/node_modules/*" -exec rm -f {} \;
-
-      - name: Remove patchedDependencies from package.json (pnpm v8 compat)
-        run: |
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            if (pkg.pnpm) {
-              delete pkg.pnpm.patchedDependencies;
-              delete pkg.pnpm.updateConfig;
-              delete pkg.pnpm.allowUnusedPatches;
-            }
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-            console.log('package.json cleaned');
-          "
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
