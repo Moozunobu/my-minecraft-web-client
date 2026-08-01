@@ -94,9 +94,6 @@ const appConfig = defineConfig({
     html: {
         template: './index.html',
         inject: 'body',
-        templateParameters: {
-            PUBLIC_URL: process.env.PUBLIC_URL || '/',
-        },
         tags: [
             ...SINGLE_FILE_BUILD ? [] : [
                 {
@@ -293,6 +290,11 @@ const appConfig = defineConfig({
                         mesherWasmCode = mesherWasmCode.replace(
                             'n1e={};',
                             'n1e={url: typeof self !== "undefined" && self.location ? self.location.href : ""};'
+                        )
+                        // Patch: fix hardcoded "/wasm_mesher_bg.wasm" which requests from domain root, causing 404 on GitHub Pages subfolders.
+                        mesherWasmCode = mesherWasmCode.replace(
+                            '\"/wasm_mesher_bg.wasm\"',
+                            'typeof self !== "undefined" && self.location ? new URL("wasm_mesher_bg.wasm", self.location.href).href : "wasm_mesher_bg.wasm"'
                         )
                         fs.writeFileSync('./dist/mesherWasm.js', mesherWasmCode, 'utf8')
                         fs.writeFileSync('./public/mesherWasm.js', mesherWasmCode, 'utf8')
