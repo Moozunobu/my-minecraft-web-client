@@ -342,6 +342,10 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
     }
 
     return chunk
+  } catch (e) {
+    console.error('mountainWorldGen chunk generation crashed!', e)
+    throw e
+  }
   }
 }
 
