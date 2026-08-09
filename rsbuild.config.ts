@@ -294,6 +294,17 @@ const appConfig = defineConfig({
                         }
                     }
 
+                    if (fs.existsSync('./node_modules/minecraft-renderer/dist/minecraft-renderer.js')) {
+                        let rendererCode = fs.readFileSync('./node_modules/minecraft-renderer/dist/minecraft-renderer.js', 'utf8')
+                        if (rendererCode.includes('else t=new Worker(e)')) {
+                            rendererCode = rendererCode.replaceAll(
+                                'else t=new Worker(e)',
+                                'else t=new Worker(typeof document!=="undefined"&&document.baseURI?new URL(e,document.baseURI).href:e)'
+                            )
+                            fs.writeFileSync('./node_modules/minecraft-renderer/dist/minecraft-renderer.js', rendererCode, 'utf8')
+                        }
+                    }
+
                     if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesherWasm.js')) {
                         let mesherWasmCode = fs.readFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', 'utf8')
                         // Patch: fix n1e.url so wasm-bindgen can resolve wasm_mesher_bg.wasm
