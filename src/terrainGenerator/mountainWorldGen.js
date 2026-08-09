@@ -251,84 +251,138 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
   }
 
   return function generateChunk(chunkX, chunkZ) {
-    try {
-      const chunk = new Chunk({ minY, worldHeight })
-      const b = mcData.blocksByName
+    const chunk = new Chunk({ minY, worldHeight })
+    const b = mcData.blocksByName
 
-      const decorations = []
+    const decorations = []
 
-      for (let lx = 0; lx < 16; lx++) {
-        for (let lz = 0; lz < 16; lz++) {
-          const wx = chunkX * 16 + lx
-          const wz = chunkZ * 16 + lz
-          const h = getSurfaceHeight(wx, wz)
-          const bio = getBiome(wx, wz, h)
+    for (let lx = 0; lx < 16; lx++) {
+      for (let lz = 0; lz < 16; lz++) {
+        const wx = chunkX * 16 + lx
+        const wz = chunkZ * 16 + lz
+        const h = getSurfaceHeight(wx, wz)
+        const bio = getBiome(wx, wz, h)
 
-          // 最下層：岩盤 (Bedrock)
-          for (let ly = minY; ly <= minY + 2; ly++) {
-            setBlock(chunk, new Vec3(lx, ly, lz), b.bedrock, theFlattening)
+        // 最下層：岩盤 (Bedrock)
+        for (let ly = minY; ly <= minY + 2; ly++) {
+          setBlock(chunk, new Vec3(lx, ly, lz), b.bedrock, theFlattening)
+        }
+
+        // 地中：石層 (Stone / Terracotta)
+        const depth = (bio === 'desert' || bio === 'beach' || bio === 'badlands') ? 5 : 3
+        for (let ly = minY + 3; ly < h - depth; ly++) {
+          if (bio === 'badlands') {
+            // メサ特有の地層（Terracotta層）
+            const layer = (ly + Math.floor(wx * 0.05)) % 12
+            if (layer === 0 || layer === 1) setBlock(chunk, new Vec3(lx, ly, lz), b.terracotta || b.hardened_clay || b.stained_hardened_clay || b.stone, theFlattening)
+            else if (layer === 3 || layer === 4) setBlock(chunk, new Vec3(lx, ly, lz), b.orange_terracotta || b.stained_hardened_clay || b.stone, theFlattening)
+            else if (layer === 7) setBlock(chunk, new Vec3(lx, ly, lz), b.yellow_terracotta || b.stained_hardened_clay || b.stone, theFlattening)
+            else if (layer === 9 || layer === 10) setBlock(chunk, new Vec3(lx, ly, lz), b.red_terracotta || b.stained_hardened_clay || b.stone, theFlattening)
+            else setBlock(chunk, new Vec3(lx, ly, lz), b.terracotta || b.stone, theFlattening)
+          } else {
+            setBlock(chunk, new Vec3(lx, ly, lz), b.stone, theFlattening)
           }
+        }
 
-          // 地中：石層 (Stone / Terracotta)
-          const depth = (bio === 'desert' || bio === 'beach' || bio === 'badlands') ? 5 : 3
-          for (let ly = minY + 3; ly < h - depth; ly++) {
-            if (bio === 'badlands') {
-              // メサ特有の地層（Terracotta層）
-              const layer = (ly + Math.floor(wx * 0.05)) % 12
-              if (layer === 0 || layer === 1) setBlock(chunk, new Vec3(lx, ly, lz), b.terracotta || b.hardened_clay || b.stained_hardened_clay || b.stone, theFlattening)
-              else if (layer === 3 || layer === 4) setBlock(chunk, new Vec3(lx, ly, lz), b.orange_terracotta || b.stained_hardened_clay || b.stone, theFlattening)
-              else if (layer === 7) setBlock(chunk, new Vec3(lx, ly, lz), b.yellow_terracotta || b.stained_hardened_clay || b.stone, theFlattening)
-              else if (layer === 9 || layer === 10) setBlock(chunk, new Vec3(lx, ly, lz), b.red_terracotta || b.stained_hardened_clay || b.stone, theFlattening)
-              else setBlock(chunk, new Vec3(lx, ly, lz), b.terracotta || b.stone, theFlattening)
+        // 地表直下層
+        for (let ly = Math.max(minY + 3, h - depth); ly < h; ly++) {
+          if (bio === 'desert' || bio === 'beach' || bio === 'warm_ocean') {
+            setBlock(chunk, new Vec3(lx, ly, lz), b.sand, theFlattening)
+          } else if (bio === 'badlands') {
+            setBlock(chunk, new Vec3(lx, ly, lz), b.red_sand || b.sand || b.terracotta || b.dirt, theFlattening)
+          } else if (bio === 'mushroom_fields') {
+            setBlock(chunk, new Vec3(lx, ly, lz), b.dirt, theFlattening)
+          } else if (bio === 'giant_tree_taiga') {
+            setBlock(chunk, new Vec3(lx, ly, lz), b.dirt, theFlattening)
+          } else if (bio === 'windswept_hills') {
+            setBlock(chunk, new Vec3(lx, ly, lz), (hashRandom(wx, wz) > 0.5 ? b.gravel : b.dirt) || b.dirt, theFlattening)
+          } else {
+            setBlock(chunk, new Vec3(lx, ly, lz), b.dirt, theFlattening)
+          }
+        }
+
+        const vSurface = new Vec3(lx, h, lz)
+
+        // --- 水域処理（水・氷） ---
+        if (h < SEA_LEVEL) {
+          const bottomBlock = (bio === 'warm_ocean' || bio === 'ocean' || bio === 'beach') ? (b.sand || b.dirt) : b.dirt
+          setBlock(chunk, vSurface, bottomBlock, theFlattening)
+
+          for (let ly = h + 1; ly <= SEA_LEVEL; ly++) {
+            if ((bio === 'frozen_ocean' || bio === 'frozen_river') && ly === SEA_LEVEL) {
+              setBlock(chunk, new Vec3(lx, ly, lz), b.ice || b.packed_ice || b.water, theFlattening)
             } else {
-              setBlock(chunk, new Vec3(lx, ly, lz), b.stone, theFlattening)
+              setBlock(chunk, new Vec3(lx, ly, lz), b.water, theFlattening)
             }
           }
+        }
+        // --- 陸地表面処理 ---
+        else if (bio === 'desert' || bio === 'beach') {
+          setBlock(chunk, vSurface, b.sand, theFlattening)
+        } else if (bio === 'badlands') {
+          setBlock(chunk, vSurface, b.red_sand || b.sand || b.terracotta, theFlattening)
+        } else if (bio === 'mushroom_fields') {
+          setBlock(chunk, vSurface, b.mycelium || b.dirt, theFlattening)
+        } else if (bio === 'giant_tree_taiga') {
+          setBlock(chunk, vSurface, b.podzol || b.coarse_dirt || b.grass_block || b.dirt, theFlattening)
+        } else if (bio === 'snowy_plains') {
+          setBlock(chunk, vSurface, b.snow_block || b.grass_block || b.dirt, theFlattening)
+        } else if (bio === 'windswept_hills') {
+          const r = hashRandom(wx, wz)
+          setBlock(chunk, vSurface, (r > 0.6 ? b.stone : (r > 0.3 ? b.gravel : b.grass_block)) || b.grass_block, theFlattening)
+        } else {
+          setBlock(chunk, vSurface, b.grass_block || b.dirt, theFlattening)
+        }
 
-          // 地表直下層
-          for (let ly = Math.max(minY + 3, h - depth); ly < h; ly++) {
-            if (bio === 'desert' || bio === 'beach' || bio === 'warm_ocean') {
-              setBlock(chunk, new Vec3(lx, ly, lz), b.sand, theFlattening)
-            } else if (bio === 'badlands') {
-              setBlock(chunk, new Vec3(lx, ly, lz), b.red_sand || b.sand || b.terracotta || b.dirt, theFlattening)
-            } else if (bio === 'mushroom_fields') {
-              setBlock(chunk, new Vec3(lx, ly, lz), b.dirt, theFlattening)
-            } else if (bio === 'giant_tree_taiga') {
-              setBlock(chunk, new Vec3(lx, ly, lz), b.dirt, theFlattening)
-            } else if (bio === 'windswept_hills') {
-              setBlock(chunk, new Vec3(lx, ly, lz), (hashRandom(wx, wz) > 0.5 ? b.gravel : b.dirt) || b.dirt, theFlattening)
-            } else {
-              setBlock(chunk, new Vec3(lx, ly, lz), b.dirt, theFlattening)
-            }
+        // --- 地表の装飾（樹木・植物・花・キノコ等） ---
+        if (h >= SEA_LEVEL) {
+          const rnd = hashRandom(wx, wz)
+
+          // 1. 樹木
+          if (bio === 'forest' && rnd < 0.08) {
+            decorations.push({ type: 'tree', treeType: rnd < 0.03 ? 'birch' : 'oak', x: lx, y: h + 1, z: lz })
+          } else if (bio === 'flower_forest' && rnd < 0.04) {
+            decorations.push({ type: 'tree', treeType: 'birch', x: lx, y: h + 1, z: lz })
+          } else if (bio === 'taiga' && rnd < 0.07) {
+            decorations.push({ type: 'tree', treeType: 'spruce', x: lx, y: h + 1, z: lz })
+          } else if (bio === 'giant_tree_taiga' && rnd < 0.06) {
+            decorations.push({ type: 'tree', treeType: 'mega_spruce', x: lx, y: h + 1, z: lz })
+          } else if (bio === 'savanna' && rnd < 0.02) {
+            decorations.push({ type: 'tree', treeType: 'acacia', x: lx, y: h + 1, z: lz })
+          } else if (bio === 'jungle' && rnd < 0.12) {
+            decorations.push({ type: 'tree', treeType: 'jungle', x: lx, y: h + 1, z: lz })
+          } else if (bio === 'swamp' && rnd < 0.04) {
+            decorations.push({ type: 'tree', treeType: 'oak', x: lx, y: h + 1, z: lz })
+          } else if (bio === 'mushroom_fields' && rnd < 0.03) {
+            decorations.push({ type: 'mushroom', isRed: rnd < 0.015, x: lx, y: h + 1, z: lz })
+          } else if (bio === 'desert' && rnd < 0.015) {
+            decorations.push({ type: 'cactus', x: lx, y: h + 1, z: lz })
           }
-
-          const vSurface = new Vec3(lx, h, lz)
-
-          // --- 水域処理（水・氷） ---
-          if (h < SEA_LEVEL) {
-            const bottomBlock = (bio === 'warm_ocean' || bio === 'ocean' || bio === 'beach') ? (b.sand || b.dirt) : b.dirt
-            setBlock(chunk, vSurface, bottomBlock, theFlattening)
-
-            for (let ly = h + 1; ly <= SEA_LEVEL; ly++) {
-              if ((bio === 'frozen_ocean' || bio === 'frozen_river') && ly === SEA_LEVEL) {
-                setBlock(chunk, new Vec3(lx, ly, lz), b.ice || b.packed_ice || b.water, theFlattening)
-              } else {
-                setBlock(chunk, new Vec3(lx, ly, lz), b.water, theFlattening)
+          // 2. 草・花・サボテン等の小植物
+          else if (rnd > 0.82) {
+            const vAbove = new Vec3(lx, h + 1, lz)
+            if (bio === 'flower_forest') {
+              const flower = (rnd > 0.94 ? b.poppy : (rnd > 0.88 ? b.dandelion : b.blue_orchid)) || b.poppy || b.grass
+              setBlockSafe(chunk, vAbove, flower, theFlattening)
+            } else if (bio === 'sunflower_plains') {
+              const plant = (rnd > 0.88 ? (b.sunflower || b.dandelion) : b.grass) || b.grass
+              setBlockSafe(chunk, vAbove, plant, theFlattening)
+            } else if (bio === 'plains' || bio === 'savanna') {
+              const plant = (rnd > 0.96 ? b.dandelion : (rnd > 0.93 ? b.poppy : b.grass)) || b.grass
+              setBlockSafe(chunk, vAbove, plant, theFlattening)
+            } else if (bio === 'swamp') {
+              if (b.lily_pad && h === SEA_LEVEL) {
+                setBlockSafe(chunk, new Vec3(lx, SEA_LEVEL + 1, lz), b.lily_pad, theFlattening)
+              }
+            } else if (bio === 'desert' || bio === 'badlands') {
+              if (rnd > 0.97 && b.dead_bush) {
+                setBlockSafe(chunk, vAbove, b.dead_bush, theFlattening)
               }
             }
           }
-          // --- 陸地表面処理 ---
-          else if (bio === 'desert' || bio === 'beach') {
-            setBlock(chunk, vSurface, b.sand, theFlattening)
-          } else if (bio === 'badlands') {
-            setBlock(chunk, vSurface, b.red_sand || b.sand || b.terracotta, theFlattening)
-          } else if (bio === 'mushroom_fields') {
-            setBlock(chunk, vSurface, b.mycelium || b.dirt, theFlattening)
-          } else if (bio === 'giant_tree_taiga') {
-            setBlock(chunk, vSurface, b.podzol || b.coarse_dirt || b.grass_block || b.dirt, theFlattening)
-          } else if (bio === 'snowy_plains') {
-            setBlock(chunk, vSurface, b.snow_block || b.grass_block || b.dirt, theFlattening)
-          } else if (bio === 'windswept_hills') {
+        }
+      }
+    }
 
     // 構造物・樹木の配置実行
     for (const dec of decorations) {
@@ -342,10 +396,6 @@ export default function generation({ version, seed = '12345', worldHeight = 256,
     }
 
     return chunk
-  } catch (e) {
-    console.error('mountainWorldGen chunk generation crashed!', e)
-    throw e
-  }
   }
 }
 
