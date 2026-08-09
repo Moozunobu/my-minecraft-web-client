@@ -62,8 +62,10 @@ export const readWorlds = (abortController: AbortController) => {
       const worlds = await fs.promises.readdir(worldsPath)
 
       const newMappedWorlds = (await Promise.allSettled(worlds.map(async (folder) => {
-        const { levelDat } = (await readLevelDat(`${worldsPath}/${folder}`))!
-        const levelDatStat = await fs.promises.stat(`${worldsPath}/${folder}/level.dat`)
+        const readResult = await readLevelDat(`${worldsPath}/${folder}`)
+        if (!readResult || !readResult.levelDat) return null
+        const { levelDat } = readResult
+        const levelDatStat = await fs.promises.stat(`${worldsPath}/${folder}/level.dat`).catch(() => null)
         let size = 0
         if (providersEnableFeatures[provider].calculateSize) {
           // todo use whole dir size
@@ -99,7 +101,7 @@ export const readWorlds = (abortController: AbortController) => {
           brokenWorlds.push(worlds[i])
           return false
         }
-        return true
+        return x.value !== null
       }).map(x => (x as Extract<typeof x, { value }>).value).sort((a, b) => {
         const getScore = (x: typeof a) => {
           return x.lastModified ?? 0
