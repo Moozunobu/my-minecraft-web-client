@@ -120,12 +120,13 @@ const MainMenuBase = ({
           {...singleplayerLongPress}
           data-test-id='singleplayer-button'
           disabled={!singleplayerAvailable}
+          style={{ width: '220px', height: '45px', fontSize: '18px', fontWeight: 'bold' }}
           initialTooltip={{
-            content: 'Create worlds and play offline',
+            content: 'Select or Create a World to Start Playing',
             placement: 'top',
           }}
         >
-          Singleplayer
+          Start Game
         </ButtonWithTooltip>
       </div>
 

@@ -309,22 +309,28 @@ const SingleplayerBase = ({
           }
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 400, paddingBottom: 3, alignItems: 'center', }}>
-        {firstRowChildrenOverride || <div>
-          <Button rootRef={firstButton} disabled={!focusedWorld} onClick={() => onWorldAction('load', focusedWorld)}>Load World</Button>
-          <Button onClick={() => onGeneralAction('create')} disabled={isReadonly}>Create New World</Button>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 400, paddingBottom: 6, width: '100%', maxWidth: 620 }}>
+        {firstRowChildrenOverride || <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 8, marginTop: 4 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button rootRef={firstButton} disabled={!focusedWorld} onClick={() => onWorldAction('load', focusedWorld)} style={{ width: 130 }}>Play Selected World</Button>
+            <Button style={{ width: 80 }} disabled={!focusedWorld || lockedEditing} onClick={() => onWorldAction('delete', focusedWorld)}>Delete</Button>
+            <Button style={{ width: 80 }} onClick={() => onGeneralAction('cancel')}>Back</Button>
+          </div>
+          <Button
+            onClick={() => onGeneralAction('create')}
+            disabled={isReadonly}
+            style={{
+              backgroundColor: '#2e7d32',
+              color: '#ffffff',
+              fontWeight: 'bold',
+              border: '2px solid #4caf50',
+              padding: '6px 16px',
+              cursor: 'pointer'
+            }}
+          >
+            ➕ Create New World
+          </Button>
         </div>}
-        <div style={{
-          ...secondRowStyles,
-          ...isSmallWidth ? { display: 'grid', gridTemplateColumns: '1fr 1fr' } : {}
-        }}>
-          {serversLayout ? <Button style={{ width: 100 }} disabled={!focusedWorld || lockedEditing} onClick={() => onWorldAction('edit', focusedWorld)}>Edit</Button> : <Button style={{ width: 100 }} disabled={!focusedWorld} onClick={() => onWorldAction('export', focusedWorld)}>Export</Button>}
-          <Button style={{ width: 100 }} disabled={!focusedWorld || lockedEditing} onClick={() => onWorldAction('delete', focusedWorld)}>Delete</Button>
-          {serversLayout ?
-            <Button style={{ width: 100 }} onClick={() => onGeneralAction('create')} disabled={lockedEditing}>Add</Button> :
-            <Button style={{ width: 100 }} onClick={() => onWorldAction('edit', focusedWorld)} disabled>Edit</Button>}
-          <Button style={{ width: 100 }} onClick={() => onGeneralAction('cancel')}>Cancel</Button>
-        </div>
       </div>
     </div>
   </div>
