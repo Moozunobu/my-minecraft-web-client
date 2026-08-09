@@ -118,6 +118,15 @@ if (isPlayground) {
 
 void registerServiceWorker().then(() => {
   mainMenuState.serviceWorkerLoaded = true
+  if (typeof window !== 'undefined' && 'caches' in window) {
+    void caches.keys().then(keys => {
+      for (const key of keys) {
+        if (key.includes('workbox') || key.includes('minecraft')) {
+          void caches.delete(key)
+        }
+      }
+    })
+  }
 })
 initCollisionShapes()
 initializePacketsReplay()

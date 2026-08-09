@@ -7,12 +7,33 @@ export const registerServiceWorker = async () => {
   if (!isCypress() && process.env.NODE_ENV !== 'development') {
     return new Promise<void>(resolve => {
       window.addEventListener('load', async () => {
-        await navigator.serviceWorker.register('./service-worker.js').then(registration => {
+        try {
+          const registration = await navigator.serviceWorker.register('./service-worker.js')
           console.log('SW registered:', registration)
+          
+          // Check for service worker updates immediately
+          void registration.update()
+
+          registration.onupdatefound = () => {
+            const installingWorker = registration.installing
+            if (installingWorker) {
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('New content available, clearing old caches...')
+                  if ('caches' in window) {
+                    caches.keys().then(names => {
+                      for (const name of names) void caches.delete(name)
+                    })
+                  }
+                }
+              }
+            }
+          }
           resolve()
-        }).catch(registrationError => {
+        } catch (registrationError) {
           console.log('SW registration failed:', registrationError)
-        })
+          resolve()
+        }
       })
     })
   } else {
