@@ -79,14 +79,16 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
         const readX = chunkX % 32 < 0 ? 32 + chunkX % 32 : chunkX % 32
         const readZ = chunkZ % 32 < 0 ? 32 + chunkZ % 32 : chunkZ % 32
         console.log('heightmap check begun', readX, readZ)
-        void this.regions.get(regionKey)?.read(readX, readZ)?.then((rawChunk) => {
-          let heightmap: number[] | undefined
-          try {
-            const chunk = simplify(rawChunk as any)
-            heightmap = findHeightMap(chunk)
-          } catch (err) {
-            console.warn('error getting heightmap', err)
-          }
+          void this.regions.get(regionKey)?.read(readX, readZ)?.then((rawChunk) => {
+            let heightmap: number[] | undefined
+            try {
+              if (rawChunk) {
+                const chunk = simplify(rawChunk as any)
+                heightmap = findHeightMap(chunk)
+              }
+            } catch (err) {
+              console.warn('error getting heightmap', err)
+            }
           if (heightmap) {
             this.isBuiltinHeightmapAvailable = true
             this.loadChunkFullmap = this.loadChunkFromRegion

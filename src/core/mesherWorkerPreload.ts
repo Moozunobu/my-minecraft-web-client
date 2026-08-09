@@ -102,9 +102,13 @@ export async function preloadMesherWorkerScript (opts?: {
   }
 
   let worker: Worker | undefined
+  let blobUrl: string | undefined
   try {
-    worker = new Worker(scriptUrl)
+    const blob = new Blob([buf], { type: 'application/javascript' })
+    blobUrl = URL.createObjectURL(blob)
+    worker = new Worker(blobUrl)
   } catch (e: unknown) {
+    if (blobUrl) URL.revokeObjectURL(blobUrl)
     const msg = e instanceof Error ? e.message : String(e)
     throw new MesherWorkerPreloadError(
       `Could not construct Worker for mesher (${scriptUrl}): ${msg}`,
@@ -126,6 +130,10 @@ export async function preloadMesherWorkerScript (opts?: {
 
     const cleanup = () => {
       clearTimeout(pingTimer)
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl)
+        blobUrl = undefined
+      }
       const w = worker
       worker = undefined
       if (!w) return

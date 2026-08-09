@@ -231,7 +231,10 @@
       "sharp",
       "cypress",
       "esbuild",
-      "fsevents"
+      "fsevents",
+      "minecraft-protocol",
+      "mineflayer-item-map-downloader",
+      "pixelarticons"
     ],
     "ignorePatchFailures": false,
     "allowUnusedPatches": false

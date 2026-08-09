@@ -51,7 +51,7 @@ export const contro = new ControMax({
       left: ['KeyA'],
       right: ['KeyD'],
       jump: ['Space', 'A'],
-      sneak: ['ShiftLeft', 'Down'],
+      sneak: ['ShiftLeft'],
       toggleSneakOrDown: [null, 'Right Stick'],
       sprint: ['ControlLeft', 'Left Stick'],
     },
@@ -66,10 +66,10 @@ export const contro = new ControMax({
       interactPlace: [null, 'Left Trigger'],
       swapHands: ['KeyF'],
       selectItem: ['KeyH'],
-      rotateCameraLeft: [null],
-      rotateCameraRight: [null],
-      rotateCameraUp: [null],
-      rotateCameraDown: [null],
+      rotateCameraLeft: ['ArrowLeft'],
+      rotateCameraRight: ['ArrowRight'],
+      rotateCameraUp: ['ArrowUp'],
+      rotateCameraDown: ['ArrowDown'],
       // ui?
       chat: [['KeyT', 'Enter'], 'Right'],
       command: ['Slash'],
@@ -79,7 +79,7 @@ export const contro = new ControMax({
       // client side
       zoom: ['KeyC'],
       viewerConsole: ['Backquote'],
-      togglePerspective: ['F5', 'Up'],
+      togglePerspective: ['F5'],
       takeScreenshot: ['F2'],
     },
     ui: {

@@ -283,6 +283,17 @@ const appConfig = defineConfig({
                         })
                     }
 
+                    if (fs.existsSync('./node_modules/flying-squid/dist/levelDat.js')) {
+                        let levelDatCode = fs.readFileSync('./node_modules/flying-squid/dist/levelDat.js', 'utf8')
+                        if (levelDatCode.includes('value: value.RandomSeed')) {
+                            levelDatCode = levelDatCode.replace(
+                                'value: value.RandomSeed',
+                                'value: Array.isArray(value.RandomSeed) ? value.RandomSeed : (0, exports.numberToLongArray)(value.RandomSeed ?? 0)'
+                            )
+                            fs.writeFileSync('./node_modules/flying-squid/dist/levelDat.js', levelDatCode, 'utf8')
+                        }
+                    }
+
                     if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesherWasm.js')) {
                         let mesherWasmCode = fs.readFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', 'utf8')
                         // Patch: fix n1e.url so wasm-bindgen can resolve wasm_mesher_bg.wasm
